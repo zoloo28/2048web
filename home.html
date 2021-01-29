@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2048</title>
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="container">
+        <div class="page">
+            <article>
+                <section>
+                    <h3 class="fade-in">
+                        How to play
+                    </h3>
+                    <p class="desc fade-in delay">
+                        4×4のマスに数字が書かれたタイルがあり、スライドさせるとそれらはマスの端まで移動し、同時に新たな２か４の数字タイルが出現する。同じ数字のタイルがぶつかると2+2=4、4+4=8というように数字が足し合わされていく。最終的に２０４８のタイルができればゲームクリアだが、それ以後も続けることはできる。また、完全にタイルが動かせない状態になるとゲームオーバーとなる。
+                    </p>
+                </section>
+                <section>
+                    <img class="fade-in delay-1" id="png" src="media/game.png" alt="game terminal">
+                    <p class="desc fade-in delay-1">
+                        '2'を押すとゲームのルールが出てきます。
+                    </p>
+                </section>
+            </article>
+        </div>
+        <div class="page">
+            <h3>
+                Source code
+            </h3>
+            
+            <div class="code">
+                <code>
+    #include &lt;stdio.h&gt;
+    #include &lt;stdlib.h&gt;
+    #include &lt;time.h&gt;
+    #include &lt;curses.h&gt;
+
+    int a[4][4] = {}, i, j;
+
+    void welcome()
+    {
+    printf("2048へようこそ！\n");
+    printf("  1) 新しいゲーム \n");
+    printf("  2)　ヘルプ  \n");
+    }
+
+    void tile(int a[4][4])
+    {
+    int b = (rand()%2+1)*2;
+    int sum, n, m;
+    do
+    {
+        srand((int)time(NULL));
+        m = rand()%4;
+        n = rand()%4;
+        
+        if(a[m][n] == 0)
+        {
+        a[m][n] = b;
+        break;
+        }
+    }while(1);
+
+    printf("出現したタイル：　%d行 %d列に %d\n", m+1, n+1, a[m][n]);
+    for(i = 0; i &lt; 4; i++)
+    {
+        printf("\e[33m-------------------------\e[0m\n");
+        for(j = 0 ;j &lt; 4; j++)
+        {
+            if((m == i)&&(n == j))
+            printf("\e[33m|\e[0m \e[31m%3d \e[0m", a[m][n]);
+            else
+            {
+            if(a[i][j] &gt; 0)
+                printf("\e[33m|\e[0m %3d ", a[i][j]);
+            else
+                printf("\e[33m|\e[0m     ");
+            }
+        }
+        printf("\e[33m|\e[0m\n");
+    }
+        printf("\e[33m-------------------------\e[0m\n");
+    }
+    void slideup(int a[4][4])
+    {
+    int m;
+    for(j = 0; j &lt; 4; j++)
+        for(i = 0; i &lt; 3; i++)
+        if(a[i][j] &gt; 0)
+            if(a[i][j] == a[i+1][j]&&a[i][j] != 0)
+            {
+            a[i][j] = 2*a[i][j];
+            if(i == 2)
+                a[i+1][j] = 0;
+            else
+                for(m = i+1; m &lt; 3; m++)
+                {
+                a[m][j] = a[m+1][j];
+                a[m+1][j] = 0;
+                }
+            }
+    }
+    void slidedown(int a[4][4])
+    {
+    int m;
+    for(j = 0; j &lt; 4; j++)
+        for(i = 3; i &gt; 0; i--)
+        if(a[i][j] &gt; 0)
+            if(a[i][j] ==a [i-1][j])
+            {
+            a[i][j] = 2*a[i][j];
+            if(i == 1)
+                a[i-1][j] = 0;
+            else
+                for(m=i-1; m&gt;0; m--)
+                {
+                a[m][j] = a[m-1][j];
+                a[m-1][j] = 0;
+                }
+            }
+    }
+    void slideleft(int a[4][4])
+    {
+    int m;
+    for(i = 0; i &lt; 4; i++)
+        for(j = 0; j &lt; 3; j++)
+        if(a[i][j] &gt; 0)
+            if(a[i][j] == a[i][j+1])
+            {
+            a[i][j] = 2*a[i][j];
+            if(j == 2)
+                a[i][j+1] = 0;
+            else
+                for(m = j+1; m&lt;3; m++)
+                {
+                a[i][m] = a[i][m+1];
+                a[i][m+1] = 0;
+                }
+            }
+    }
+    void slideright(int a[][4])
+    {
+    int m;
+    for(i = 0; i &lt; 4; i++)
+        for(j = 3; j &gt; 0; j--)
+        if(a[i][j] &gt; 0)
+            if(a[i][j] == a[i][j-1])
+            {
+            a[i][j] = 2*a[i][j];
+            if(j == 1)
+                a[i][j-1] = 0;
+            else
+                for(m = j-1; m &gt; 0; m--)
+                {
+                a[i][m] = a[i][m-1];
+                a[i][m-1] = 0;
+                }
+            }
+    }
+    void wasd(char k)
+    {
+    int x, m;
+    switch(k)
+    {
+        case 'w' :
+        for(j = 0; j &lt; 4; j++)
+            for(i = 1; i &lt;= 3; i++)
+            for(x = i, m = i; x &gt; 0; x--, m--)
+            {
+                if(a[m-1][j] &gt; 0)
+                break;
+                else
+                {
+                a[m-1][j] = a[m][j];
+                a[m][j] = 0;
+                }
+            }
+        slideup(a);
+        break;
+        case 's' :
+        for(j = 0; j &lt; 4; j++)
+            for(i = 2; i &gt;= 0; i--)
+            for(x = 3-i, m = i; x&gt;0; x--, m++)
+            {
+                if(a[m+1][j] &gt; 0)
+                break;
+                else
+                {
+                a[m+1][j] = a[m][j];
+                a[m][j] = 0;
+                }
+            }
+        slidedown(a);
+        break;
+        case 'a' :
+        for(i = 0; i &lt; 4; i++)
+            for(j = 1; j &lt;= 3; j++)
+            for(x = j, m = j; x &gt; 0; x--, m--)
+            {
+                if(a[i][m-1] &gt; 0)
+                break;
+                else
+                {
+                a[i][m-1] = a[i][m];
+                a[i][m] = 0;
+                }
+            }
+        slideleft(a);
+        break;
+        case 'd' :
+        for(i = 0; i &lt; 4; i++)
+            for(j = 2; j &gt;= 0; j--)
+            for(x = 3-j, m = j; x &gt; 0; x--, m++)
+            {
+                if(a[i][m+1] &gt; 0)
+                break;
+                else
+                {
+                a[i][m+1] = a[i][m];
+                a[i][m] = 0;
+                }
+            }
+        slideright(a);
+        break;
+    }
+    }
+    int main(int argc, char *argv[])
+    {
+    int star = 1;
+    char c, k;
+    system("stty -icanon");
+    outloop:;
+    welcome();
+    k = getchar();
+    printf("\n");
+    if(k == '1')
+    {
+        while(star == 1)
+        {
+        tile(a);
+        c = getchar();
+        printf("\n");
+        wasd(c);
+        for(i = 0; i &lt; 4; i++)
+            for(j = 0; j &lt; 4; j++)
+            {
+            if(a[i][j] == 0)
+            {
+                star = 1;
+                goto end;
+            }
+            else
+                star = 0;
+            }
+        end:;
+        }
+    }
+    if(k == '2')
+    {
+        do
+        {
+        printf(" ゲームのルール：&lt;w&gt;、&lt;s&gt;、&lt;a&gt;、&lt;d&gt;キーをクリックして、数字を上下左右に移動します。同じ数字のタイルがぶつかると2+2=4、4+4=8というように数字が足し合わされてい。最終的に２０４８のタイルができればゲームクリア \n");
+        printf("  3) 戻る \n");
+        k=getchar();
+        printf("\n");
+        }while(k != '3');
+        goto outloop;
+    }
+    printf("      ゲームオーバー :(( \n");
+    return 0;
+    }
+                </code> 
+            </div>
+            <a href="code.html" class="button-sm">
+                see more
+            </a>
+        </div>
+        <div class="page">
+            <h2>
+                お楽しみください。
+            </h2>
+            <a href="https://cdn.filesend.jp/private/yTiSTgfLF2X9lA1xplOSAh-eJSLbABj3CbBwg3LADURlWh_bTGGXDm6ZOlODUPcz/2048.1.c" class="button-sm">
+                download
+            </a>
+        </div>
+    </div>
+    
+</body>
+</html>
